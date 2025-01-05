@@ -1,10 +1,7 @@
-from flask import Flask, Response, render_template, request, jsonify
+from flask import Flask, Response, render_template, jsonify
 import pickle
 import cv2
 import numpy as np
-import base64
-from io import BytesIO
-from PIL import Image
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -20,6 +17,9 @@ fashion_classes = [
     "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot"
 ]
 
+# Initialize video capture
+camera = cv2.VideoCapture(0)
+
 def preprocess_frame(frame):
     """Preprocess frame for model prediction."""
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -28,43 +28,12 @@ def preprocess_frame(frame):
     reshaped = np.expand_dims(normalized, axis=(0, -1))
     return reshaped
 
-@app.route('/process_frame', methods=['POST'])
-def process_frame():
-    """Route to process a single frame and return prediction."""
-    data = request.get_json()
-    if 'image' not in data:
-        return jsonify({"error": "No image provided"}), 400
-
-    # Decode the base64 image
-    image_data = data['image'].split(',')[1]
-    image = Image.open(BytesIO(base64.b64decode(image_data)))
-    frame = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-
-    # Preprocess and predict
-    try:
-        processed_frame = preprocess_frame(frame)
-        predictions = model.predict(processed_frame, verbose=0)
-        class_idx = np.argmax(predictions)
-        label = fashion_classes[class_idx]
-        probability = predictions[0][class_idx] * 100  # Probability in percentage
-
-        return jsonify({
-            "label": label,
-            "probability": f"{probability:.2f}"
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 def generate_frames():
     """Generate frames from the webcam for live video feed."""
-    camera = cv2.VideoCapture(0)
     while True:
         success, frame = camera.read()
         if not success:
             break
-        # Resize the frame to a smaller size for display
-        #frame = cv2.resize(frame, (480, 640))
-
         # Preprocess the frame for prediction
         processed_frame = preprocess_frame(frame)
 
@@ -74,13 +43,13 @@ def generate_frames():
             class_idx = np.argmax(predictions)
             label = fashion_classes[class_idx]
             probability = predictions[0][class_idx] * 100  # Probability in percentage
-
-            # Annotate the frame with label and probability
-            cv2.putText(frame, f"Detected: {label} ({probability:.2f}%)", (10, 30), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         except Exception as e:
             print(f"Prediction error: {e}")
             break
+    
+        # Annotate the frame with label and probability
+        cv2.putText(frame, f"Detected: {label} ({probability:.2f}%)", (10, 30), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         # Encode frame as JPEG
         ret, buffer = cv2.imencode('.jpg', frame)
