@@ -35,21 +35,24 @@
             overflow: hidden;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
         }
-        img {
+        video, canvas {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        .overlay {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background-color: rgba(0, 0, 0, 0.6);
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #1f4037;
             color: #fff;
-            padding: 5px 10px;
+            border: none;
             border-radius: 5px;
-            font-size: 1rem;
-            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #14532d;
         }
         footer {
             margin-top: 20px;
@@ -62,9 +65,51 @@
 <body>
     <h1>Fashion Detection Live Stream</h1>
     <div class="video-container">
-        <img src="/video_feed" alt="Live Video Stream">
+        <!-- Replace the <img> with a <video> element -->
+        <video id="video" autoplay></video>
+        <canvas id="canvas" style="display: none;"></canvas>
     </div>
+    <button id="capture">Capture and Send Frame</button>
     <footer>Powered by GROUP 1 || Fashion Detection Model</footer>
     <footer>Copyright &copy; 2025 | Smriti | Smriti Chaudhury | Raghu | Ronak | Aditya |</footer>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureButton = document.getElementById('capture');
+
+        // Access the user's camera
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                video.srcObject = stream;
+            })
+            .catch((err) => {
+                console.error("Camera access denied:", err);
+            });
+
+        // Capture the frame and send it to the server
+        captureButton.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const frameData = canvas.toDataURL('image/jpeg');
+
+            // Send the captured frame to the server
+            fetch('/process_frame', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: frameData })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(Detected: ${data.label} (${data.probability}%));
+            })
+            .catch(err => {
+                console.error("Error sending frame:", err);
+            });
+        });
+    </script>
 </body>
 </html>
