@@ -61,97 +61,14 @@
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
         }
     </style>
-    <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const captureButton = document.getElementById('capture');
-
-    // Access the user's camera
-    navigator.mediaDevices.getUserMedia({ video: true })
-        .then((stream) => {
-            video.srcObject = stream;
-        })
-        .catch((err) => {
-            console.error("Camera access denied:", err);
-        });
-
-    // Capture the frame and send it to the server
-    captureButton.addEventListener('click', () => {
-        const context = canvas.getContext('2d');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        const frameData = canvas.toDataURL('image/jpeg');
-
-        // Send the captured frame to the server
-        fetch('/process_frame', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: frameData })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert(`Error: ${data.error}`);
-            } else {
-                alert(`Detected: ${data.label} (${data.probability}%)`);
-            }
-        })
-        .catch(err => {
-            console.error("Error sending frame:", err);
-        });
-    });
-</script>
 </head>
 <body>
     <h1>Fashion Detection Live Stream</h1>
     <div class="video-container">
-        <!-- Replace the <img> with a <video> element -->
-        <video id="video" autoplay></video>
-        <canvas id="canvas" style="display: none;"></canvas>
+        <img id="video" src="{{ url_for('video_feed') }}" alt="Live Video">
     </div>
     <button id="capture">Capture and Send Frame</button>
     <footer>Powered by GROUP 1 || Fashion Detection Model</footer>
     <footer>Copyright &copy; 2025 | Smriti | Smriti Chaudhury | Raghu | Ronak | Aditya |</footer>
-
-    <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const captureButton = document.getElementById('capture');
-
-        // Access the user's camera
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then((stream) => {
-                video.srcObject = stream;
-            })
-            .catch((err) => {
-                console.error("Camera access denied:", err);
-            });
-
-        // Capture the frame and send it to the server
-        captureButton.addEventListener('click', () => {
-            const context = canvas.getContext('2d');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            const frameData = canvas.toDataURL('image/jpeg');
-
-            // Send the captured frame to the server
-            fetch('/process_frame', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: frameData })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(Detected: ${data.label} (${data.probability}%));
-            })
-            .catch(err => {
-                console.error("Error sending frame:", err);
-            });
-        });
-    </script>
 </body>
 </html>
