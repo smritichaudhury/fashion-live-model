@@ -1,39 +1,34 @@
-from flask import Flask, Response, render_template, jsonify
-import pickle
+from flask import Flask, render_template, Response
 import cv2
 import numpy as np
+from tensorflow.keras.models import load_model
 
-# Initialize Flask app
 app = Flask(__name__)
 
-# Load the model from the .pkl file
-pkl_model_path = "model/fashion_mnist_model.pkl"
-with open(pkl_model_path, "rb") as pkl_file:
-    model = pickle.load(pkl_file)
+# Load the model (replace with your actual model path)
+model = load_model('fashion_model.h5')
 
-# Define class labels
-fashion_classes = [
-    "T-shirt/top", "Trouser", "Pullover", "Dress", "Coat", 
-    "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot"
-]
+# Mapping the class indices to class names (example for a fashion dataset)
+fashion_classes = ["T-shirt", "Trouser", "Pullover", "Dress", "Coat", "Sandal", "Shirt", "Sneaker", "Bag", "Ankle Boot"]
 
-# Initialize video capture
+# Initialize the webcam
 camera = cv2.VideoCapture(0)
 
 def preprocess_frame(frame):
-    """Preprocess frame for model prediction."""
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    resized = cv2.resize(gray, (28, 28))
-    normalized = resized / 255.0
-    reshaped = np.expand_dims(normalized, axis=(0, -1))
-    return reshaped
+    """Preprocess the frame for prediction"""
+    # Resize and normalize frame as required by your model
+    resized_frame = cv2.resize(frame, (224, 224))  # Example size for a model
+    normalized_frame = resized_frame / 255.0  # Example normalization
+    return np.expand_dims(normalized_frame, axis=0)
 
 def generate_frames():
-    """Generate frames from the webcam for live video feed."""
+    """Generate frames from webcam for live video feed"""
     while True:
         success, frame = camera.read()
         if not success:
+            print("Failed to capture frame")
             break
+
         # Preprocess the frame for prediction
         processed_frame = preprocess_frame(frame)
 
@@ -46,28 +41,32 @@ def generate_frames():
         except Exception as e:
             print(f"Prediction error: {e}")
             break
-    
+
         # Annotate the frame with label and probability
         cv2.putText(frame, f"Detected: {label} ({probability:.2f}%)", (10, 30), 
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         # Encode frame as JPEG
         ret, buffer = cv2.imencode('.jpg', frame)
+        if not ret:
+            print("Failed to encode frame")
+            continue
+        
         frame = buffer.tobytes()
 
         # Yield the frame as a response
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-@app.route('/video_feed')
-def video_feed():
-    """Route to display the live video feed."""
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
 @app.route('/')
 def index():
-    """Main route to render the HTML page."""
+    """Home page that shows the webcam feed"""
     return render_template('index.html')
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+@app.route('/video_feed')
+def video_feed():
+    """Route to display the live video feed"""
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+if __name__ == '__main__':
+    app.run(debug=True)
