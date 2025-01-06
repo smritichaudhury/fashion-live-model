@@ -14,7 +14,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 # Load the model (replace with your actual model path)
-model = load_model('fashion_model.h5')
+model = load_model('fashion_mnist_model_v2.h5')
 
 # Mapping the class indices to class names (example for a fashion dataset)
 fashion_classes = ["T-shirt", "Trouser", "Pullover", "Dress", "Coat", "Sandal", "Shirt", "Sneaker", "Bag", "Ankle Boot"]
