@@ -2,8 +2,16 @@ from flask import Flask, render_template, Response
 import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
+import logging 
 
 app = Flask(__name__)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # Adjust logging level as needed
+handler = logging.StreamHandler()  # Consider using a file handler for deployment
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 # Load the model (replace with your actual model path)
 model = load_model('fashion_model.h5')
@@ -63,10 +71,14 @@ def index():
     """Home page that shows the webcam feed"""
     return render_template('index.html')
 
+# Error handling example
 @app.route('/video_feed')
 def video_feed():
-    """Route to display the live video feed"""
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    try:
+        return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    except Exception as e:
+        logger.error(f"Error while generating video feed: {e}")
+        return Response(status=500)
 
 if __name__ == '__main__':
     app.run(debug=True)
